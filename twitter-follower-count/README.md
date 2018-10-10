@@ -1,9 +1,18 @@
-A simple program to calculate the number of followers a twitter user has
+Analysis on Twitter Dataset 
 ------------
 ### Dataset: 
 http://socialcomputing.asu.edu/datasets/Twitter <br />
 The dataset contains two files: **nodes.csv** or the users and **edges.csv** which contains entries in the form of (user, user-it-follows)
 
+
+Max Filter
+--------------
+
+Social Triangles
+--------------
+
+A simple program to calculate the number of followers a twitter user has
+-----------------
 ### Approach:
 ```
 map(line l):
