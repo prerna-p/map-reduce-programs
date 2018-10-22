@@ -1,1 +1,68 @@
-Counting the number of twitter followers a user has
+Analysis on Twitter Dataset 
+------------
+### Dataset: 
+http://socialcomputing.asu.edu/datasets/Twitter <br />
+The dataset contains two files: **nodes.csv** or the users and **edges.csv** which contains entries in the form of (user, user-it-follows)
+
+
+Max Filter
+--------------
+
+Social Triangles
+--------------
+
+A simple program to calculate the number of followers a twitter user has
+-----------------
+### Approach:
+```
+map(line l):
+      split (user, user-it-follows) pair in l on “,”
+      if user-it-follows exists:
+	emit(user-it-follows,1)
+
+reduce(user x, [c1,c2…]): // where c1,c2 are the counts for x
+      count=0
+      for c in [c1,c2….]:
+	count+=c
+       emit(x, count)
+```
+
+### Execution:
+- The program was run on AWS on two clusters
+- Cluster-1 - 1 master and 5 workers (all m4.large machines)
+- Cluster-2 - 1 master and 10 workers (all m4.large machines)
+- 2 independent runs were made on each cluster
+
+### Results:
+<table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Runtime-1</th>
+        <th>Runtime-2</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>Cluster-1</td>
+          <td>1 minute and 54 seconds</td>
+          <td>1 minute and 56 seconds</td>
+        </tr>
+        <tr>
+          <td>Cluster-2</td>
+          <td>1 minute and 17 seconds</td>
+          <td>1 minute and 16 seconds</td>
+        </tr>
+       <tr>
+          <td>Speedup</td>
+          <td>1.48</td>
+          <td>1.526</td>
+        </tr>
+    </tbody>
+</table>
+Speed up is calculated by run time on cluster-1 vs run time on cluster-2
+
+### Output:
+Output for cluster-1 is stored at twitter-follower-count/output <br />
+Output for cluster-2 is stored at twitter-follower-count/output1 <br />
+
