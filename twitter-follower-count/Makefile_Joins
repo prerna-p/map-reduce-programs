@@ -1,0 +1,216 @@
+# Makefile for Hadoop MapReduce WordCount demo project.
+
+# Customize these paths for your environment.
+# -----------------------------------------------------------
+hadoop.root=/home/prerna/Desktop/hadoop-2.9.1
+jar.name=twitter-follower-count-2.0.jar
+jar.path=target/${jar.name}
+job.name=sp.GraphDiameter
+
+#---------------------------------------------
+local.input=test #input
+local.output=ouput
+#---------------------------------------------
+
+#---------------------------------------------
+maxfilter="20000"
+maxfilter.job.name=com.twitterfollowercount.app.MaxFilter
+maxfilter.output=max-output
+#---------------------------------------------
+
+
+#----------------------------------------------
+rs.input=${maxfilter.output}
+rs.job.name=com.twitterfollowercount.app.RSJoin
+rs.output=rs1
+rs2.output=output
+#------------------------------------------------------
+
+
+#------------------------------------------------------
+rep.job.name=com.twitterfollowercount.app.RepJoin
+rep.input=${maxfilter.output}
+rep.output=rep
+#------------------------------------------------------
+
+# Pseudo-Cluster Execution
+hdfs.user.name=prerna
+hdfs.input=input
+hdfs.max=max-output
+hdfs.output=rep
+
+# AWS EMR Execution
+aws.emr.release=emr-5.17.0
+aws.region=us-east-1
+aws.bucket.name=twitterfollowercnt-pp
+aws.subnet.id=subnet-8c8550b2
+aws.input=input
+aws.max=max-output
+aws.output=output
+aws.log.dir=log
+aws.num.nodes=10
+aws.instance.type=m4.large
+#subnet-8c8550b2 subnet-931895bd
+# -----------------------------------------------------------
+
+# Compiles code and builds jar (with dependencies).
+jar:
+	mvn clean package
+
+# Removes local output directory.
+clean-local-output:
+	rm -rf ${local.output}*
+
+clean-rs1-output:
+	rm -rf ${rs.output}
+
+# Runs standalone
+# Make sure Hadoop  is set up (in /etc/hadoop files) for standalone operation (not pseudo-cluster).
+# https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/SingleCluster.html#Standalone_Operation
+local: jar clean-local-output
+	${hadoop.root}/bin/hadoop jar ${jar.path} ${job.name} ${local.input} ${local.output}
+
+# MAX-FILTER
+clean-maxfilter-output:
+	rm -rf ${maxfilter.output}*
+
+max-filter: jar clean-maxfilter-output
+	${hadoop.root}/bin/hadoop jar ${jar.path} ${job.name} ${local.input} ${maxfilter.output} ${maxfilter}
+
+# RS JOIN
+rs-join: jar clean-maxfilter-output clean-rs1-output clean-local-output
+	${hadoop.root}/bin/hadoop jar ${jar.path} ${rs.job.name} ${local.input} ${maxfilter.output} ${maxfilter} ${rs.output} ${local.output}
+
+
+# REP JOIN
+clean-rep-output:
+	rm -rf ${rep.output}
+
+rep-join: jar clean-maxfilter-output clean-rep-output
+	${hadoop.root}/bin/hadoop jar ${jar.path} ${rep.job.name} ${local.input} ${maxfilter.output} ${maxfilter} ${rep.output}
+
+
+# Start HDFS
+start-hdfs:
+	${hadoop.root}/sbin/start-dfs.sh
+
+# Stop HDFS
+stop-hdfs: 
+	${hadoop.root}/sbin/stop-dfs.sh
+	
+# Start YARN
+start-yarn: stop-yarn
+	${hadoop.root}/sbin/start-yarn.sh
+
+# Stop YARN
+stop-yarn:
+	${hadoop.root}/sbin/stop-yarn.sh
+
+# Reformats & initializes HDFS.
+format-hdfs: stop-hdfs
+	rm -rf /tmp/hadoop*
+	${hadoop.root}/bin/hdfs namenode -format
+
+# Initializes user & input directories of HDFS.	
+init-hdfs: start-hdfs
+	${hadoop.root}/bin/hdfs dfs -rm -r -f /user
+	${hadoop.root}/bin/hdfs dfs -mkdir /user
+	${hadoop.root}/bin/hdfs dfs -mkdir /user/${hdfs.user.name}
+	${hadoop.root}/bin/hdfs dfs -mkdir /user/${hdfs.user.name}/${hdfs.input}
+
+# Load data to HDFS
+upload-input-hdfs: start-hdfs
+	${hadoop.root}/bin/hdfs dfs -put ${local.input}/* /user/${hdfs.user.name}/${hdfs.input}
+
+# Removes hdfs output directory.
+clean-hdfs-output:
+	${hadoop.root}/bin/hdfs dfs -rm -r -f ${hdfs.output}*
+
+# Removes max output directory.
+clean-hdfs-max:
+	${hadoop.root}/bin/hdfs dfs -rm -r -f ${hdfs.max}*
+
+# Download output from HDFS to local.
+download-output-hdfs: clean-local-output
+	mkdir ${local.output}
+	${hadoop.root}/bin/hdfs dfs -get ${hdfs.output}/* ${local.output}
+
+# Runs pseudo-clustered (ALL). ONLY RUN THIS ONCE, THEN USE: make pseudoq
+# Make sure Hadoop  is set up (in /etc/hadoop files) for pseudo-clustered operation (not standalone).
+# https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/SingleCluster.html#Pseudo-Distributed_Operation
+pseudo: jar stop-yarn format-hdfs init-hdfs upload-input-hdfs start-yarn clean-maxfilter-output clean-rep-output 
+	${hadoop.root}/bin/hadoop jar ${jar.path} ${rep.job.name} ${hdfs.input} ${hdfs.max} ${maxfilter} ${hdfs.output}
+	make download-output-hdfs
+
+# Runs pseudo-clustered (quickie).
+pseudoq: jar clean-local-output clean-hdfs-output clean-hdfs-max
+	${hadoop.root}/bin/hadoop jar ${jar.path} ${rep.job.name} ${hdfs.input} ${hdfs.max} ${maxfilter} ${hdfs.output}
+	make download-output-hdfs
+
+# Create S3 bucket.
+make-bucket:
+	aws s3 mb s3://${aws.bucket.name}
+
+# Upload data to S3 input dir.
+upload-input-aws: make-bucket
+	aws s3 sync ${local.input} s3://${aws.bucket.name}/${aws.input}
+	
+# Delete S3 output dir.
+delete-output-aws:
+	aws s3 rm s3://${aws.bucket.name}/ --recursive --exclude "*" --include "${aws.output}*"
+
+# Delete S3 MAX output dir.
+delete-max-output-aws:
+	aws s3 rm s3://${aws.bucket.name}/ --recursive --exclude "*" --include "${aws.max}*"
+
+# Delete S3 RS STEP-1 output dir.
+delete-rs-output-aws:
+	aws s3 rm s3://${aws.bucket.name}/ --recursive --exclude "*" --include "${rs.output}*"
+
+# Upload application to S3 bucket.
+upload-app-aws:
+	aws s3 cp ${jar.path} s3://${aws.bucket.name}
+
+#upload-app-aws  ${maxfilter.output} ${maxfilter} ${rs.output}
+
+# Main EMR launch.
+aws: jar delete-output-aws delete-max-output-aws delete-rs-output-aws
+	aws emr create-cluster \
+		--name "TwitterFollower MR Cluster A2" \
+		--release-label ${aws.emr.release} \
+		--instance-groups '[{"InstanceCount":${aws.num.nodes},"InstanceGroupType":"CORE","InstanceType":"${aws.instance.type}"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"${aws.instance.type}"}]' \
+	    --applications Name=Hadoop \
+	    --steps '[{"Args":["${job.name}","s3://${aws.bucket.name}/${aws.input}","s3://${aws.bucket.name}/${aws.max}",${maxfilter},"s3://${aws.bucket.name}/${rs.output}","s3://${aws.bucket.name}/${aws.output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"TERMINATE_CLUSTER","Name":"Custom JAR"}]' \
+		--log-uri s3://${aws.bucket.name}/${aws.log.dir} \
+		--use-default-roles \
+		--enable-debugging \
+		--auto-terminate \
+		--ec2-attributes SubnetId=${aws.subnet.id}
+
+# Download output from S3.
+download-output-aws: clean-local-output
+	mkdir ${local.output}
+	aws s3 sync s3://${aws.bucket.name}/${aws.output} ${local.output}
+
+# Change to standalone mode.
+switch-standalone:
+	cp config/standalone/*.xml ${hadoop.root}/etc/hadoop
+
+# Change to pseudo-cluster mode.
+switch-pseudo:
+	cp config/pseudo/*.xml ${hadoop.root}/etc/hadoop
+
+# Package for release.
+distro:
+	rm -f MR-Demo.tar.gz
+	rm -f MR-Demo.zip
+	rm -rf build
+	mkdir -p build/deliv/MR-Demo
+	cp -r src build/deliv/MR-Demo
+	cp -r config build/deliv/MR-Demo
+	cp -r input build/deliv/MR-Demo
+	cp pom.xml build/deliv/MR-Demo
+	cp Makefile build/deliv/MR-Demo
+	cp README.txt build/deliv/MR-Demo
+	tar -czf MR-Demo.tar.gz -C build/deliv MR-Demo
+	cd build/deliv && zip -rq ../../MR-Demo.zip MR-Demo
