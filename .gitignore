@@ -1,4 +1,6 @@
 *.class
 *.prefs*
-org.eclipse.jdt.core.prefs
 .classpath
+.project
+target/
+.settings/
