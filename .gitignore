@@ -1,6 +1,0 @@
-*.class
-*.prefs*
-.classpath
-.project
-target/
-.settings/
