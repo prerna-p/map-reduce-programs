@@ -1,4 +1,4 @@
-package com.twitterfollowercount.app;
+package com.followercounts.app;
 
 /**this program calculates the number of followers for a user, given the
  * input in the form of lines consisting of (user, user-it-follows)
@@ -25,22 +25,18 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.twitterfollowercount.*;
-
-
-public class FollowerCount extends Configured implements Tool
-{
+public class FollowerCount extends Configured implements Tool {
 	private static final Logger logger = LogManager.getLogger(FollowerCount.class);
-	
+
 	public static class TokenizerMapper extends Mapper<Object, Text, Text, IntWritable> {
 		private final static IntWritable one = new IntWritable(1);
 		private final Text word = new Text();
 
 		@Override
-		public void map(final Object key, final Text value, final Context context) throws IOException, InterruptedException {
+		public void map(final Object key, final Text value, final Context context)
+				throws IOException, InterruptedException {
 
-
-			//For each record (r1,r2), split by comma and emit(r2,1)
+			// For each record (r1,r2), split by comma and emit(r2,1)
 			String record = value.toString();
 			String[] entry = record.split(",");
 			if (entry.length > 1) {
@@ -49,12 +45,13 @@ public class FollowerCount extends Configured implements Tool
 			}
 		}
 	}
-	
+
 	public static class IntSumReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
 		private final IntWritable result = new IntWritable();
 
 		@Override
-		public void reduce(final Text key, final Iterable<IntWritable> values, final Context context) throws IOException, InterruptedException {
+		public void reduce(final Text key, final Iterable<IntWritable> values, final Context context)
+				throws IOException, InterruptedException {
 			int sum = 0;
 			// for each value in in values, and value to the final count
 			for (final IntWritable val : values) {
@@ -64,26 +61,26 @@ public class FollowerCount extends Configured implements Tool
 			context.write(key, result);
 		}
 	}
-	
-	
+
 	public int run(final String[] args) throws Exception {
 		final Configuration conf = getConf();
 		final Job job = Job.getInstance(conf, "Word Count");
 		job.setJarByClass(FollowerCount.class);
 		final Configuration jobConf = job.getConfiguration();
 		jobConf.set("mapreduce.output.textoutputformat.separator", "\t");
-		// Delete output directory, only to ease local development; will not work on AWS. ===========
-		/*final FileSystem fileSystem = FileSystem.get(conf);
-		if (fileSystem.exists(new Path(args[1]))) {
-			fileSystem.delete(new Path(args[1]), true);
-		}*/
+		// Delete output directory, only to ease local development; will not work on
+		// AWS. ===========
+		/*
+		 * final FileSystem fileSystem = FileSystem.get(conf); if (fileSystem.exists(new
+		 * Path(args[1]))) { fileSystem.delete(new Path(args[1]), true); }
+		 */
 		// ================
 		job.setMapperClass(TokenizerMapper.class);
 		job.setCombinerClass(IntSumReducer.class);
 		job.setReducerClass(IntSumReducer.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(IntWritable.class);
-//		job.setNumReduceTasks(3);
+		// job.setNumReduceTasks(3);
 		FileInputFormat.addInputPath(job, new Path(args[0]));
 		FileOutputFormat.setOutputPath(job, new Path(args[1]));
 		return job.waitForCompletion(true) ? 0 : 1;
