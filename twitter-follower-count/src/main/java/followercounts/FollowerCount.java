@@ -1,4 +1,4 @@
-package com.followercounts.app;
+package followercounts;
 
 /**this program calculates the number of followers for a user, given the
  * input in the form of lines consisting of (user, user-it-follows)
