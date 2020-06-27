@@ -13,11 +13,11 @@ _Note: The analysis for these projects are performed solely by me, Prerna Purohi
 
 ### Project 0 : Finding number of followers for each user:
  - [Source](https://github.com/prerna-p/map-reduce-programs/blob/master/twitter-follower-count/src/main/java/followercounts/FollowerCount.java)
- - [Analysis]()
+ - [Analysis](https://github.com/prerna-p/map-reduce-programs/tree/master/twitter-follower-count#project-0-finding-number-of-followers-for-each-user)
 
 ### Project 1 : Filtering out users having followers less than MAX_FILTER value taken as input:
  - [Source](https://github.com/prerna-p/map-reduce-programs/blob/master/twitter-follower-count/src/main/java/joins/MaxFilter.java)
- - [Analysis]()
+ - [Analysis](https://github.com/prerna-p/map-reduce-programs/tree/master/twitter-follower-count#project-1-max-filter)
 
  ### Project 2 : Finding social triangles:
  - [Source](https://github.com/prerna-p/map-reduce-programs/tree/master/twitter-follower-count/src/main/java/joins)
