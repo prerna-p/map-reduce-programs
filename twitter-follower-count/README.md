@@ -1,30 +1,51 @@
-Analysis on Twitter Dataset 
+Projects executed on AWS EMR 
 ------------
 ### Dataset: 
 http://socialcomputing.asu.edu/datasets/Twitter <br />
-The dataset contains two files: **nodes.csv** or the users and **edges.csv** which contains entries in the form of (user, user-it-follows)
+The dataset contains two files: **nodes.csv** or the users and **edges.csv** which contains entries in the form of (user, user-it-follows) <br />
+Number of users : **11 million** <br />
+Number of relationships : **85 million** <br />
 
-
-Max Filter
+Project 1: Max Filter
 --------------
+### Approach:
+```
+// First MapReduce job : find follower counts
+map(line l):
+  split (user, user-it-follows) pair in l on “,”
+  if user-it-follows exists:
+    emit(user-it-follows,1)
 
-Social Triangles
---------------
+reduce(user x, [c1,c2…]): // where c1,c2 are the counts for x
+  count=0
+  for c in [c1,c2….]:
+    count+=c
+  emit(x, count)
 
-A simple program to calculate the number of followers a twitter user has
+// Main MaxFilter Map-only job:
+maxfilterMapper(line)
+  read MAX value from context
+  followers = split (user, followerCount) pair in line on “,”
+  if( followers < MAX)
+    emit(users[0],users[1])
+```
+### Analysis
+A filter is useful to trim your data set. For example, in project-2, I am finding out the social triangles, so I can use max filter to reject users with followers below a certain threshold. Every user must have atleast  one follower to find if it is part of a social triangle
+
+Project 0: Finding number of followers for each user
 -----------------
 ### Approach:
 ```
 map(line l):
-      split (user, user-it-follows) pair in l on “,”
-      if user-it-follows exists:
-	emit(user-it-follows,1)
+  split (user, user-it-follows) pair in l on “,”
+  if user-it-follows exists:
+    emit(user-it-follows,1)
 
 reduce(user x, [c1,c2…]): // where c1,c2 are the counts for x
-      count=0
-      for c in [c1,c2….]:
-	count+=c
-       emit(x, count)
+  count=0
+  for c in [c1,c2….]:
+    count+=c
+  emit(x, count)
 ```
 
 ### Execution:
@@ -61,8 +82,4 @@ reduce(user x, [c1,c2…]): // where c1,c2 are the counts for x
     </tbody>
 </table>
 Speed up is calculated by run time on cluster-1 vs run time on cluster-2
-
-### Output:
-Output for cluster-1 is stored at twitter-follower-count/output <br />
-Output for cluster-2 is stored at twitter-follower-count/output1 <br />
 
