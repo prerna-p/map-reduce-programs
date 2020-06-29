@@ -70,7 +70,6 @@ triangleCountReducer(key, [val])
 <table>
     <thead>
       <tr>
-        <th></th>
         <th>Computation</th>
         <th>6 m4.large machines</th>
         <th>11 m4.large machines</th>
