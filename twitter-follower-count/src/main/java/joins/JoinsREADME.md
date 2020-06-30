@@ -15,7 +15,7 @@ The **goal** of the problem is to count the number of social triangles for a tri
 The way to solve this computation is to first find the two length paths A->B->C by joining the data to itself on the attribute B. Then second, find the closing paths C->A for each two length path.<br />
 
 ### Approach 1: Replicated Join
-```
+```java
 load max filter output to hdfs cache
 setup()
   H = new HashMap
@@ -31,7 +31,7 @@ map(line)
         increment global counter
 ```
 ### Approach 2: RS Join
-```
+```java
 // STEP ONE
 tokenizerMapper(line)
   user,followee = line.split(“,”)

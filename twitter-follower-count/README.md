@@ -9,7 +9,7 @@ Number of relationships : **85 million** <br />
 Project 1: Max Filter
 --------------
 ### Approach:
-```
+```java
 // First MapReduce job : find follower counts
 map(line l):
   split (user, user-it-follows) pair in l on “,”
@@ -35,7 +35,7 @@ A filter is useful to trim your data set. For example, in project-2, I am findin
 Project 0: Finding number of followers for each user
 -----------------
 ### Approach:
-```
+```java
 map(line l):
   split (user, user-it-follows) pair in l on “,”
   if user-it-follows exists:
